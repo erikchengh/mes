@@ -22,7 +22,7 @@ except ImportError as e:
 
 # 页面配置
 st.set_page_config(
-    page_title="制药工艺流程MES系统",
+    page_title="制药工艺流程",
     page_icon="🧬",
     layout="wide",
     initial_sidebar_state="expanded"
