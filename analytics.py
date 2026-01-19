@@ -12,7 +12,7 @@ class MESAnalyzer:
     """MES专业分析器"""
     
     @staticmethod
-    def assess_process_risk(steps: List[Dict]) -> Dict:
+    def assess_process_risk(steps: List[Dict[str, Any]]) -> Dict[str, Any]:
         """评估工艺风险 - 基于ICH Q9质量风险管理"""
         risk_score = 0
         critical_steps = []
@@ -58,7 +58,7 @@ class MESAnalyzer:
         }
     
     @staticmethod
-    def _evaluate_step_risk_factors(step: Dict) -> float:
+    def _evaluate_step_risk_factors(step: Dict[str, Any]) -> float:
         """评估单个步骤的风险因素"""
         risk_score = 0
         
@@ -85,7 +85,7 @@ class MESAnalyzer:
         return risk_score
     
     @staticmethod
-    def _identify_risk_factors(step: Dict) -> List[str]:
+    def _identify_risk_factors(step: Dict[str, Any]) -> List[str]:
         """识别具体风险因素"""
         factors = []
         step_name = step.get("name", "")
@@ -122,7 +122,7 @@ class MESAnalyzer:
             return "可接受风险 (绿色)"
     
     @staticmethod
-    def _generate_risk_recommendations(risk_level: str, critical_steps: List) -> List[str]:
+    def _generate_risk_recommendations(risk_level: str, critical_steps: List[Dict[str, Any]]) -> List[str]:
         """生成风险控制建议"""
         recommendations = []
         
@@ -142,7 +142,7 @@ class MESAnalyzer:
         return recommendations
     
     @staticmethod
-    def calculate_process_metrics(steps: List[Dict]) -> Dict:
+    def calculate_process_metrics(steps: List[Dict[str, Any]]) -> Dict[str, Any]:
         """计算工艺关键指标"""
         total_steps = len(steps)
         total_params = sum(len(step.get("关键参数", [])) for step in steps)
@@ -155,21 +155,19 @@ class MESAnalyzer:
         
         # 时间统计
         total_time = 0
-        time_units = []
         for step in steps:
             if "时间" in step:
                 time_str = str(step["时间"])
-                if "天" in time_str:
-                    time_value = float(time_str.replace("天", "").replace("(", "").replace(")", "")) * 24
-                elif "h" in time_str:
-                    time_value = float(time_str.replace("h", "").replace("(", "").replace(")", ""))
-                else:
-                    try:
+                try:
+                    if "天" in time_str:
+                        time_value = float(time_str.replace("天", "").replace("(", "").replace(")", "")) * 24
+                    elif "h" in time_str:
+                        time_value = float(time_str.replace("h", "").replace("(", "").replace(")", ""))
+                    else:
                         time_value = float(time_str)
-                    except:
-                        time_value = 0
+                except:
+                    time_value = 0
                 total_time += time_value
-                time_units.append("小时")
         
         # 复杂度评分
         complexity_score = MESAnalyzer._calculate_complexity_score(steps)
@@ -185,7 +183,7 @@ class MESAnalyzer:
         }
     
     @staticmethod
-    def _calculate_complexity_score(steps: List[Dict]) -> float:
+    def _calculate_complexity_score(steps: List[Dict[str, Any]]) -> float:
         """计算工艺复杂度评分"""
         score = 0
         
@@ -223,7 +221,7 @@ class MESAnalyzer:
         return round(score, 2)
     
     @staticmethod
-    def check_gmp_compliance(product_info: Dict) -> Dict:
+    def check_gmp_compliance(product_info: Dict[str, Any]) -> Dict[str, Any]:
         """检查GMP合规性"""
         steps = product_info.get("工艺步骤", [])
         gmp_class = product_info.get("GMP分类", "未分类")
@@ -281,7 +279,7 @@ class MESAnalyzer:
         }
     
     @staticmethod
-    def generate_batch_record_template(product_info: Dict) -> Dict:
+    def generate_batch_record_template(product_info: Dict[str, Any]) -> Dict[str, Any]:
         """生成批记录模板"""
         steps = product_info.get("工艺步骤", [])
         
