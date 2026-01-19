@@ -9,11 +9,16 @@ import numpy as np
 from datetime import datetime
 
 # 导入自定义模块
-from database import PharmaceuticalProcesses
-from analytics import MESAnalyzer
-from visualizations import MESVisualizations
-from components import PharmaComponents
-from mes_features import MESFeatures
+try:
+    from database import PharmaceuticalProcesses
+    from analytics import MESAnalyzer
+    from visualizations import MESVisualizations
+    from components import PharmaComponents
+    from mes_features import MESFeatures
+except ImportError as e:
+    st.error(f"导入模块时出错: {e}")
+    st.info("请确保所有模块文件都位于同一目录下")
+    st.stop()
 
 # 页面配置
 st.set_page_config(
@@ -109,6 +114,21 @@ st.markdown("""
         color: white !important;
         border: none;
     }
+    
+    /* KPI卡片样式 */
+    .kpi-card {
+        background: linear-gradient(135deg, #1F2937 0%, #2D3748 100%);
+        border: 1px solid #4B5563;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .kpi-card:hover {
+        border-color: #3B82F6;
+        transform: translateY(-2px);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -127,16 +147,20 @@ def main():
     mode = PharmaComponents.create_sidebar()
     
     # 根据模式显示内容
-    if mode == "单一产品分析":
-        display_single_product_analysis()
-    elif mode == "多产品对比":
-        display_multi_product_comparison()
-    elif mode == "风险评估":
-        display_risk_assessment()
-    elif mode == "合规性检查":
-        display_compliance_check()
-    elif mode == "批记录分析":
-        display_batch_record_analysis()
+    try:
+        if mode == "单一产品分析":
+            display_single_product_analysis()
+        elif mode == "多产品对比":
+            display_multi_product_comparison()
+        elif mode == "风险评估":
+            display_risk_assessment()
+        elif mode == "合规性检查":
+            display_compliance_check()
+        elif mode == "批记录分析":
+            display_batch_record_analysis()
+    except Exception as e:
+        st.error(f"应用运行时出错: {e}")
+        st.info("请检查输入数据或联系系统管理员")
     
     # 创建页脚
     PharmaComponents.create_footer()
@@ -146,80 +170,88 @@ def display_single_product_analysis():
     st.markdown("## 🔬 单一产品工艺分析")
     
     # 获取侧边栏选择
-    from database import PharmaceuticalProcesses
-    
     categories = PharmaceuticalProcesses.get_main_categories()
-    selected_category = st.session_state.get("product_category", categories[0] if categories else None)
+    
+    if not categories:
+        st.error("无法获取药品分类信息")
+        return
+    
+    selected_category = st.session_state.get("product_category", categories[0])
     
     if selected_category:
         products = PharmaceuticalProcesses.get_products(selected_category)
-        selected_product = st.session_state.get("product_name", products[0] if products else None)
+        
+        if not products:
+            st.error(f"分类 '{selected_category}' 下没有产品")
+            return
+        
+        selected_product = st.session_state.get("product_name", products[0])
         
         if selected_product:
             product_info = PharmaceuticalProcesses.get_product_info(selected_category, selected_product)
             
-            if product_info:
-                # 显示产品信息
-                col1, col2 = st.columns([3, 1])
-                
-                with col1:
-                    st.markdown(f"""
-                    <div class="card">
-                        <h3 style="color: white; margin-bottom: 10px;">{selected_product}</h3>
-                        <p style="color: #D1D5DB;">{product_info.get('description', '')}</p>
-                        <div style="margin-top: 15px;">
-                            <span style="
-                                background-color: rgba(59, 130, 246, 0.2);
-                                color: #93C5FD;
-                                padding: 5px 12px;
-                                border-radius: 20px;
-                                margin-right: 10px;
-                                border: 1px solid #3B82F6;
-                            ">{selected_category}</span>
-                            <span style="
-                                background-color: rgba(16, 185, 129, 0.2);
-                                color: #A7F3D0;
-                                padding: 5px 12px;
-                                border-radius: 20px;
-                                border: 1px solid #10B981;
-                            ">GMP分类: {product_info.get('GMP分类', '未分类')}</span>
-                        </div>
+            if not product_info:
+                st.error(f"无法获取产品 '{selected_product}' 的信息")
+                return
+            
+            # 显示产品信息
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                st.markdown(f"""
+                <div class="card">
+                    <h3 style="color: white; margin-bottom: 10px;">{selected_product}</h3>
+                    <p style="color: #D1D5DB;">{product_info.get('description', '暂无描述')}</p>
+                    <div style="margin-top: 15px;">
+                        <span style="
+                            background-color: rgba(59, 130, 246, 0.2);
+                            color: #93C5FD;
+                            padding: 5px 12px;
+                            border-radius: 20px;
+                            margin-right: 10px;
+                            border: 1px solid #3B82F6;
+                        ">{selected_category}</span>
+                        <span style="
+                            background-color: rgba(16, 185, 129, 0.2);
+                            color: #A7F3D0;
+                            padding: 5px 12px;
+                            border-radius: 20px;
+                            border: 1px solid #10B981;
+                        ">GMP分类: {product_info.get('GMP分类', '未分类')}</span>
                     </div>
-                    """, unsafe_allow_html=True)
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                # 计算工艺指标
+                steps = product_info.get("工艺步骤", [])
+                metrics = MESAnalyzer.calculate_process_metrics(steps)
                 
-                with col2:
-                    # 计算工艺指标
-                    steps = product_info.get("工艺步骤", [])
-                    metrics = MESAnalyzer.calculate_process_metrics(steps)
-                    
-                    st.markdown(f"""
-                    <div class="card" style="text-align: center;">
-                        <div style="font-size: 2rem; font-weight: bold; color: #3B82F6; margin: 10px 0;">
-                            {len(steps)}
-                        </div>
-                        <div style="color: #9CA3AF; font-size: 0.9rem;">
-                            工艺步骤
-                        </div>
+                st.markdown(f"""
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #3B82F6; margin: 10px 0;">
+                        {len(steps)}
                     </div>
-                    """, unsafe_allow_html=True)
-                
-                # 显示KPI仪表板
-                PharmaComponents.create_kpi_dashboard(metrics)
-                
-                # 创建选项卡
-                tab1, tab2, tab3, tab4 = st.tabs(["📋 工艺步骤", "🔧 风险分析", "📊 可视化", "📑 批记录模板"])
-                
-                with tab1:
-                    display_process_steps(product_info)
-                
-                with tab2:
-                    display_risk_analysis(product_info)
-                
-                with tab3:
-                    display_visualizations(product_info)
-                
-                with tab4:
-                    display_batch_template(product_info)
+                    <div style="color: #9CA3AF; font-size: 0.9rem;">
+                        工艺步骤
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # 显示KPI仪表板
+            PharmaComponents.create_kpi_dashboard(metrics)
+            
+            # 创建选项卡
+            tab1, tab2, tab3 = st.tabs(["📋 工艺步骤", "🔧 风险分析", "📊 可视化"])
+            
+            with tab1:
+                display_process_steps(product_info)
+            
+            with tab2:
+                display_risk_analysis(product_info)
+            
+            with tab3:
+                display_visualizations(product_info, selected_product)
 
 def display_process_steps(product_info):
     """显示工艺步骤"""
@@ -279,10 +311,9 @@ def display_risk_analysis(product_info):
     for rec in recommendations:
         st.markdown(f"- {rec}")
 
-def display_visualizations(product_info):
+def display_visualizations(product_info, product_name):
     """显示可视化图表"""
     steps = product_info.get("工艺步骤", [])
-    product_name = st.session_state.get("product_name", "当前产品")
     
     if not steps:
         st.info("无法生成可视化：缺少工艺步骤信息")
@@ -308,72 +339,11 @@ def display_visualizations(product_info):
     param_chart = MESVisualizations.create_parameter_trend_chart({}, width=800, height=500)
     st.plotly_chart(param_chart, use_container_width=True)
 
-def display_batch_template(product_info):
-    """显示批记录模板"""
-    st.markdown("### 批记录模板")
-    
-    # 生成批记录模板
-    template = MESAnalyzer.generate_batch_record_template(product_info)
-    
-    # 显示批记录头信息
-    with st.expander("批记录头信息", expanded=True):
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.text_input("产品名称", value=st.session_state.get("product_name", ""))
-            st.text_input("批号", value="")
-            st.date_input("生产日期", value=datetime.now())
-        
-        with col2:
-            st.date_input("有效期至", value=datetime.now() + pd.DateOffset(years=2))
-            st.number_input("批量", value=100, min_value=1)
-            st.text_input("生产线", value="Line-1")
-        
-        with col3:
-            st.selectbox("班次", ["A", "B", "C"])
-            st.text_input("操作员", value="")
-            st.text_input("复核人", value="")
-    
-    # 显示步骤记录
-    st.markdown("### 工艺步骤记录")
-    steps = product_info.get("工艺步骤", [])
-    
-    for i, step in enumerate(steps, 1):
-        with st.expander(f"步骤 {i}: {step.get('name', '')}", expanded=(i==1)):
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.markdown("**目标值**")
-                for param in step.get("关键参数", [])[:3]:
-                    st.text_input(f"{param} (目标)", value="", key=f"target_{i}_{param}")
-            
-            with col2:
-                st.markdown("**实际值**")
-                for param in step.get("关键参数", [])[:3]:
-                    st.text_input(f"{param} (实际)", value="", key=f"actual_{i}_{param}")
-            
-            with col3:
-                st.markdown("**检查项**")
-                st.checkbox("参数符合要求", key=f"check_param_{i}")
-                st.checkbox("设备运行正常", key=f"check_equip_{i}")
-                st.text_area("备注", key=f"remark_{i}", height=80)
-            
-            st.markdown("---")
-            col_sig1, col_sig2, col_sig3 = st.columns(3)
-            with col_sig1:
-                st.text_input("操作员签名", key=f"op_sign_{i}")
-            with col_sig2:
-                st.text_input("班组长签名", key=f"super_sign_{i}")
-            with col_sig3:
-                st.text_input("QA检查", key=f"qa_check_{i}")
-
 def display_multi_product_comparison():
     """显示多产品对比"""
     st.markdown("## 📊 多产品工艺对比")
     
     # 获取选中的产品
-    from database import PharmaceuticalProcesses
-    
     selected_products = st.session_state.get("compare_products", [])
     
     if not selected_products:
@@ -387,15 +357,18 @@ def display_multi_product_comparison():
     products_data = []
     for product_path in selected_products:
         if " | " in product_path:
-            category, product_name = product_path.split(" | ")
-            product_info = PharmaceuticalProcesses.get_product_info(category, product_name)
-            if product_info:
-                products_data.append({
-                    "name": product_name,
-                    "category": category,
-                    "info": product_info,
-                    "steps": product_info.get("工艺步骤", [])
-                })
+            try:
+                category, product_name = product_path.split(" | ")
+                product_info = PharmaceuticalProcesses.get_product_info(category, product_name)
+                if product_info:
+                    products_data.append({
+                        "name": product_name,
+                        "category": category,
+                        "info": product_info,
+                        "steps": product_info.get("工艺步骤", [])
+                    })
+            except:
+                continue
     
     if not products_data:
         st.error("未找到选中的产品信息")
@@ -454,60 +427,8 @@ def display_multi_product_comparison():
     
     with col2:
         # 柱状图对比
-        fig = go.Figure()
-        
-        for i, data in enumerate(products_data):
-            product_name = data["name"]
-            steps = len(data["steps"])
-            
-            fig.add_trace(go.Bar(
-                x=[product_name],
-                y=[steps],
-                name=product_name,
-                marker_color=MESVisualizations.PHARMA_COLORS["secondary_blue"] if i % 2 == 0 
-                             else MESVisualizations.PHARMA_COLORS["pharma_teal"]
-            ))
-        
-        fig.update_layout(
-            title="工艺步骤数对比",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font_color="white",
-            height=400
-        )
-        
+        fig = MESVisualizations.create_comparison_bar_chart(products_data)
         st.plotly_chart(fig, use_container_width=True)
-    
-    # 详细对比
-    st.markdown("### 详细对比")
-    tabs = st.tabs([data["name"] for data in products_data])
-    
-    for idx, tab in enumerate(tabs):
-        with tab:
-            data = products_data[idx]
-            product_info = data["info"]
-            
-            # 显示产品信息
-            st.markdown(f"**描述**: {product_info.get('description', '')}")
-            st.markdown(f"**GMP分类**: {product_info.get('GMP分类', '未分类')}")
-            
-            # 显示关键特征
-            features = product_info.get("关键特征", [])
-            if features:
-                st.markdown("**关键特征**:")
-                for feature in features:
-                    st.markdown(f"- {feature}")
-            
-            # 显示风险评估
-            steps = data["steps"]
-            risk_data = MESAnalyzer.assess_process_risk(steps)
-            
-            st.markdown("**风险评估**:")
-            col_risk1, col_risk2 = st.columns(2)
-            with col_risk1:
-                st.metric("风险等级", risk_data.get("risk_level", "未知"))
-            with col_risk2:
-                st.metric("平均风险分", f"{risk_data.get('average_risk_score', 0):.2f}")
 
 def display_risk_assessment():
     """显示风险评估"""
@@ -521,8 +442,6 @@ def display_risk_assessment():
     st.markdown(f"**风险容忍度**: {risk_tolerance}/10")
     
     # 选择要评估的产品
-    from database import PharmaceuticalProcesses
-    
     categories = PharmaceuticalProcesses.get_main_categories()
     selected_category = st.selectbox("选择药品分类", categories, key="risk_category")
     
@@ -544,39 +463,6 @@ def display_risk_assessment():
                     risk_data.get("risk_level", "未知"),
                     risk_data.get("average_risk_score", 0)
                 )
-                
-                # 显示风险矩阵
-                st.markdown("### 风险矩阵")
-                
-                # 创建风险矩阵可视化
-                fig = go.Figure()
-                
-                # 添加风险点
-                critical_steps = risk_data.get("critical_steps", [])
-                for step in critical_steps:
-                    fig.add_trace(go.Scatter(
-                        x=[step.get("risk_score", 0)],
-                        y=[step.get("step_number", 0)],
-                        mode="markers",
-                        marker=dict(
-                            size=20,
-                            color="#EF4444",
-                            symbol="diamond"
-                        ),
-                        name=step.get("step", "")
-                    ))
-                
-                fig.update_layout(
-                    title="风险矩阵分布",
-                    xaxis_title="风险得分",
-                    yaxis_title="步骤编号",
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    font_color="white",
-                    height=400
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
                 
                 # 显示详细风险信息
                 st.markdown("### 详细风险信息")
@@ -602,8 +488,6 @@ def display_compliance_check():
     st.markdown("**检查标准**: " + ", ".join(standards))
     
     # 选择要检查的产品
-    from database import PharmaceuticalProcesses
-    
     categories = PharmaceuticalProcesses.get_main_categories()
     selected_category = st.selectbox("选择药品分类", categories, key="compliance_category")
     
@@ -683,8 +567,6 @@ def display_batch_record_analysis():
     st.markdown(f"**分析类型**: {analysis_type}")
     
     # 选择产品
-    from database import PharmaceuticalProcesses
-    
     categories = PharmaceuticalProcesses.get_main_categories()
     selected_category = st.selectbox("选择药品分类", categories, key="batch_category")
     
@@ -697,7 +579,7 @@ def display_batch_record_analysis():
             
             if product_info:
                 # 生成模拟批记录数据
-                num_batches = batch_range[1] - batch_range[0] + 1
+                num_batches = min(batch_range[1] - batch_range[0] + 1, 50)  # 限制最多50批次
                 batch_data = MESFeatures.generate_batch_records(product_info, num_batches)
                 
                 if not batch_data.empty:
