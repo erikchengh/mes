@@ -27,7 +27,7 @@ class PharmaComponents:
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     font-size: 2.5rem;
-                ">🧬 制药工艺流程MES系统</h1>
+                ">🧬 制药工艺流程</h1>
             </div>
             <div style="
                 display: flex;
@@ -511,7 +511,7 @@ class PharmaComponents:
         ">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h4 style="color: white; margin: 0 0 10px 0;">🧬 制药工艺流程MES系统</h4>
+                    <h4 style="color: white; margin: 0 0 10px 0;">🧬 制药工艺流程</h4>
                     <p style="color: #9CA3AF; margin: 0; font-size: 0.9rem;">
                         GMP合规 | 质量风险管理 | 工艺验证 | 批记录管理
                     </p>
@@ -521,7 +521,7 @@ class PharmaComponents:
                         版本 3.0 | 专为制药行业MES设计
                     </p>
                     <p style="color: #6B7280; margin: 5px 0 0 0; font-size: 0.8rem;">
-                        © 2024 制药工艺MES系统 - 数据来源：行业标准整理
+                        © 2024 制药工艺 - 数据来源：行业标准整理
                     </p>
                 </div>
             </div>
